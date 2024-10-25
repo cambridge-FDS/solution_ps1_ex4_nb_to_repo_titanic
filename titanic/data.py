@@ -65,11 +65,11 @@ def age_interval(data, age_col="Age"):
     Split the age column into age intervals creating a new column called 'Age Interval'.
     """
     data["Age Interval"] = 0.0
-    data.loc[data["Age"] <= 16, "Age Interval"] = 0
-    data.loc[(data["Age"] > 16) & (data["Age"] <= 32), "Age Interval"] = 1
-    data.loc[(data["Age"] > 32) & (data["Age"] <= 48), "Age Interval"] = 2
-    data.loc[(data["Age"] > 48) & (data["Age"] <= 64), "Age Interval"] = 3
-    data.loc[data["Age"] > 64, "Age Interval"] = 4
+    data.loc[data[age_col] <= 16, "Age Interval"] = 0
+    data.loc[(data[age_col] > 16) & (data[age_col] <= 32), "Age Interval"] = 1
+    data.loc[(data[age_col] > 32) & (data[age_col] <= 48), "Age Interval"] = 2
+    data.loc[(data[age_col] > 48) & (data[age_col] <= 64), "Age Interval"] = 3
+    data.loc[data[age_col] > 64, "Age Interval"] = 4
     return data
 
 
@@ -78,10 +78,10 @@ def fare_interval(data, fare_col="Fare"):
     Split the Fare column into fare intervals creating a new column called 'Fare Interval'.
     """
     data["Fare Interval"] = 0.0
-    data.loc[data["Fare"] <= 7.91, "Fare Interval"] = 0
-    data.loc[(data["Fare"] > 7.91) & (data["Fare"] <= 14.454), "Fare Interval"] = 1
-    data.loc[(data["Fare"] > 14.454) & (data["Fare"] <= 31), "Fare Interval"] = 2
-    data.loc[data["Fare"] > 31, "Fare Interval"] = 3
+    data.loc[data[fare_col] <= 7.91, "Fare Interval"] = 0
+    data.loc[(data[fare_col] > 7.91) & (data[fare_col] <= 14.454), "Fare Interval"] = 1
+    data.loc[(data[fare_col] > 14.454) & (data[fare_col] <= 31), "Fare Interval"] = 2
+    data.loc[data[fare_col] > 31, "Fare Interval"] = 3
     return data
 
 
@@ -122,3 +122,66 @@ def parse_names(row):
             return pd.Series([family_name, title, given_name, None])
     except Exception as ex:
         print(f"Exception: {ex}")
+
+
+def concatenator(df_1, df_2):
+    """
+    Concate two dataframes and add a column 'set' to identify the train and test set.
+    """
+    all_df = pd.concat([df_1, df_2], axis=0)
+    all_df["set"] = "train"
+    all_df.loc[all_df.Survived.isna(), "set"] = "test"
+    return all_df
+
+
+def feat_family_size_int(dataset):
+    dataset["Family Type"] = dataset["Family Size"]
+    dataset.loc[dataset["Family Size"] == 1, "Family Type"] = "Single"
+    dataset.loc[
+        (dataset["Family Size"] > 1) & (dataset["Family Size"] < 5), "Family Type"
+    ] = "Small"
+    dataset.loc[(dataset["Family Size"] >= 5), "Family Type"] = "Large"
+    return dataset
+
+
+def feat_title(dataset):
+    dataset["Titles"] = dataset["Title"]
+    # unify `Miss`
+    dataset["Titles"] = dataset["Titles"].replace("Mlle.", "Miss.")
+    dataset["Titles"] = dataset["Titles"].replace("Ms.", "Miss.")
+    # unify `Mrs`
+    dataset["Titles"] = dataset["Titles"].replace("Mme.", "Mrs.")
+    # unify Rare
+    dataset["Titles"] = dataset["Titles"].replace(
+        [
+            "Lady.",
+            "the Countess.",
+            "Capt.",
+            "Col.",
+            "Don.",
+            "Dr.",
+            "Major.",
+            "Rev.",
+            "Sir.",
+            "Jonkheer.",
+            "Dona.",
+        ],
+        "Rare",
+    )
+    return dataset
+
+
+def analys_table_survived_by_x_y(data, x, y):
+    """
+    Create a table showing the number of survived and not survived passengers for each unique value of x and y.
+    """
+    return data[[x, y, "Survived"]].groupby([x, y], as_index=False).mean()
+
+
+def feat_sex_numeric(dataset):
+    mapped_sex = dataset["Sex"].map({"female": 1, "male": 0})
+    if mapped_sex.isna().any():
+        print("Warning: NaN values found after mapping!")
+        print(mapped_sex.isna().sum(), "NaN values")
+    dataset["Sex"] = mapped_sex.astype(int)
+    return dataset
